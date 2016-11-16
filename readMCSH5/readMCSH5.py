@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import h5py
 import numpy as np
 
 import h5shelve
@@ -61,8 +62,25 @@ class MEA():
         return (item in self.spike_times.keys())
 
 
+class MCSh5MEA(MEA):
+    ''' This class returns a MEA that is created from an HDF5 file created
+        by the MCS data conversion utility'''
+
+    def __init__(self, file_name):
+        super().__init__(self)
+        with h5py.File(file_name) as db:
+            ts_stream = db['Data']['Recording_0']['TimeStampStream']['Stream_0']
+            for i in range(60):
+                tse = 'TimeStampEntity_' + str(i)
+                loc = str(ts_stream['InfoTimeStamp'][i][-1], 'utf-8')
+                self[loc] = np.asarray(ts_stream[tse].value[0],
+                                       dtype=np.float)/10e5
+
+            self.dur = db['Data']['Recording_0'].attrs['Duration']/10e5
+
+
 class H5MEA(MEA):
-    ''' THis class returns a MEA that is created from an HDF5 file '''
+    ''' THis class returns a MEA that is created from a custom HDF5 file '''
 
     def __init__(self, file_name):
         super().__init__(self)
